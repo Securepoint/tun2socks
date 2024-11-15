@@ -105,10 +105,10 @@ func (pc *symmetricNATPacketConn) ReadFrom(p []byte) (int, net.Addr, error) {
 	for {
 		n, from, err := pc.PacketConn.ReadFrom(p)
 
-		if from != nil && from.String() != pc.dst {
-			log.Warnf("[UDP] symmetric NAT %s->%s: drop packet from %s", pc.src, pc.dst, from)
-			continue
-		}
+		// if from != nil && from.String() != pc.dst {
+		// 	log.Warnf("[UDP] symmetric NAT %s->%s: drop packet from %s", pc.src, pc.dst, from)
+		// 	continue
+		// }
 
 		return n, from, err
 	}
