@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"golang.org/x/sys/unix"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 
 	"github.com/xjasonlyu/tun2socks/v2/core/device"
@@ -42,7 +41,9 @@ func (f *FD) Name() string {
 
 func (f *FD) Close() {
 	defer f.LinkEndpoint.Close()
-	_ = unix.Close(f.fd)
+
+	// don't close the fd, it's owned by the caller
+	//_ = unix.Close(f.fd)
 }
 
 var _ device.Device = (*FD)(nil)
