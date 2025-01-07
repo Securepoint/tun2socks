@@ -3,7 +3,7 @@ module github.com/xjasonlyu/tun2socks/v2
 go 1.23.1
 
 require (
-	github.com/Securepoint/go-android-log v0.0.0-20250107074358-dd22c937765d
+	github.com/Securepoint/go-android-log v1.0.0
 	github.com/docker/go-units v0.5.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
