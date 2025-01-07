@@ -105,11 +105,11 @@ func execCommand(cmd string) error {
 }
 
 func general(k *Key) error {
-	level, err := log.ParseLevel(k.LogLevel)
-	if err != nil {
-		return err
-	}
-	log.SetLogger(log.Must(log.NewLeveled(level)))
+	// level, err := log.ParseLevel(k.LogLevel)
+	// if err != nil {
+	// 	return err
+	// }
+	// log.SetLogger(log.Must(log.NewLeveled(level)))
 
 	if k.Interface != "" {
 		iface, err := net.InterfaceByName(k.Interface)
