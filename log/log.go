@@ -6,6 +6,11 @@ import (
 
 var log = androidlog.NewLogger("Tun2Socks")
 
+
+func SetPackageName(packageName string) {
+	log.SetPackageName(packageName)
+}
+
 func Debugf(template string, args ...any) {
 	log.Debugf(template, args...)
 }

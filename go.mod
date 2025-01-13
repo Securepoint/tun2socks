@@ -3,7 +3,7 @@ module github.com/xjasonlyu/tun2socks/v2
 go 1.23.1
 
 require (
-	github.com/Securepoint/go-android-log v1.0.0
+	github.com/Securepoint/go-android-log v1.1.1
 	github.com/docker/go-units v0.5.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
@@ -29,6 +29,7 @@ require (
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/google/btree v1.1.3 // indirect
+	github.com/mattn/go-sqlite3 v1.14.24 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.31.0 // indirect
