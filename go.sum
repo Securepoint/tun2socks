@@ -2,6 +2,8 @@ github.com/Securepoint/go-android-log v1.1.0 h1:vyc7i22m8zc36Rt7VawWsDDQtZYZ5foV
 github.com/Securepoint/go-android-log v1.1.0/go.mod h1:HollPtLumGOX83JpdXtLKvZBh/JoXVlP34pOmee4qD0=
 github.com/Securepoint/go-android-log v1.1.1 h1:+AxMLhucVMaczeC9zKjXd4q3Xm9q9frXRp1ImyrYAgM=
 github.com/Securepoint/go-android-log v1.1.1/go.mod h1:HollPtLumGOX83JpdXtLKvZBh/JoXVlP34pOmee4qD0=
+github.com/Securepoint/go-android-log v1.2.0 h1:GWlwPGnYhR+ljMUz0CDjiK7+rwHRHyADDMVHgPErKJM=
+github.com/Securepoint/go-android-log v1.2.0/go.mod h1:tNsvt7G35Sk4JJc+Qx4DQ7HRpL6/UiGbROmokiiU3B8=
 github.com/ajg/form v1.5.1 h1:t9c7v8JUKu/XxOGBU0yjNpaMloxGEJhUkqFRq0ibGeU=
 github.com/ajg/form v1.5.1/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
