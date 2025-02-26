@@ -11,6 +11,10 @@ func SetPackageName(packageName string) {
 	log.SetPackageName(packageName)
 }
 
+func SetEnabled(enabled bool) {
+	log.SetEnabled(enabled)
+}
+
 func Debugf(template string, args ...any) {
 	log.Debugf(template, args...)
 }
