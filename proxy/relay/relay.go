@@ -1,4 +1,4 @@
-package proxy
+package relay
 
 import (
 	"bytes"
@@ -9,33 +9,32 @@ import (
 	"io"
 	"math"
 	"net"
+	"net/url"
 	"sync"
 
 	"github.com/go-gost/relay"
+	"github.com/gorilla/schema"
 
 	"github.com/xjasonlyu/tun2socks/v2/buffer"
 	"github.com/xjasonlyu/tun2socks/v2/dialer"
 	M "github.com/xjasonlyu/tun2socks/v2/metadata"
-	"github.com/xjasonlyu/tun2socks/v2/proxy/proto"
+	"github.com/xjasonlyu/tun2socks/v2/proxy"
+	"github.com/xjasonlyu/tun2socks/v2/proxy/internal/utils"
 )
 
-var _ Proxy = (*Relay)(nil)
+var _ proxy.Proxy = (*Relay)(nil)
 
 type Relay struct {
-	*Base
-
+	addr string
 	user string
 	pass string
 
 	noDelay bool
 }
 
-func NewRelay(addr, user, pass string, noDelay bool) (*Relay, error) {
+func New(addr, user, pass string, noDelay bool) (*Relay, error) {
 	return &Relay{
-		Base: &Base{
-			addr:  addr,
-			proto: proto.Relay,
-		},
+		addr:    addr,
 		user:    user,
 		pass:    pass,
 		noDelay: noDelay,
@@ -47,7 +46,10 @@ func (rl *Relay) DialContext(ctx context.Context, metadata *M.Metadata) (c net.C
 }
 
 func (rl *Relay) DialUDP(metadata *M.Metadata) (net.PacketConn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), tcpConnectTimeout)
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		utils.TCPConnectTimeout,
+	)
 	defer cancel()
 
 	return rl.dialContext(ctx, metadata)
@@ -56,14 +58,14 @@ func (rl *Relay) DialUDP(metadata *M.Metadata) (net.PacketConn, error) {
 func (rl *Relay) dialContext(ctx context.Context, metadata *M.Metadata) (rc *relayConn, err error) {
 	var c net.Conn
 
-	c, err = dialer.DialContext(ctx, "tcp", rl.Addr())
+	c, err = dialer.DialContext(ctx, "tcp", rl.addr)
 	if err != nil {
-		return nil, fmt.Errorf("connect to %s: %w", rl.Addr(), err)
+		return nil, fmt.Errorf("connect to %s: %w", rl.addr, err)
 	}
-	setKeepAlive(c)
+	utils.SetKeepAlive(c)
 
 	defer func(c net.Conn) {
-		safeConnClose(c, err)
+		utils.SafeConnClose(c, err)
 	}(c)
 
 	req := relay.Request{
@@ -89,10 +91,10 @@ func (rl *Relay) dialContext(ctx context.Context, metadata *M.Metadata) (rc *rel
 
 	if rl.noDelay {
 		if _, err = req.WriteTo(c); err != nil {
-			return
+			return rc, err
 		}
 		if err = readRelayResponse(c); err != nil {
-			return
+			return rc, err
 		}
 	}
 
@@ -101,22 +103,22 @@ func (rl *Relay) dialContext(ctx context.Context, metadata *M.Metadata) (rc *rel
 		rc = newRelayConn(c, metadata.Addr(), rl.noDelay, false)
 		if !rl.noDelay {
 			if _, err = req.WriteTo(rc.wbuf); err != nil {
-				return
+				return rc, err
 			}
 		}
 	case M.UDP:
 		rc = newRelayConn(c, metadata.Addr(), rl.noDelay, true)
 		if !rl.noDelay {
 			if _, err = req.WriteTo(rc.wbuf); err != nil {
-				return
+				return rc, err
 			}
 		}
 	default:
 		err = fmt.Errorf("network %s is unsupported", metadata.Network)
-		return
+		return rc, err
 	}
 
-	return
+	return rc, err
 }
 
 type relayConn struct {
@@ -151,7 +153,7 @@ func (rc *relayConn) Read(b []byte) (n int, err error) {
 		}
 	})
 	if err != nil {
-		return
+		return n, err
 	}
 
 	if !rc.udp {
@@ -161,7 +163,7 @@ func (rc *relayConn) Read(b []byte) (n int, err error) {
 	var bb [2]byte
 	_, err = io.ReadFull(rc.Conn, bb[:])
 	if err != nil {
-		return
+		return n, err
 	}
 
 	dLen := int(binary.BigEndian.Uint16(bb[:]))
@@ -174,7 +176,7 @@ func (rc *relayConn) Read(b []byte) (n int, err error) {
 	_, err = io.ReadFull(rc.Conn, buf)
 	n = copy(b, buf)
 
-	return
+	return n, err
 }
 
 func (rc *relayConn) WriteTo(b []byte, _ net.Addr) (int, error) {
@@ -194,7 +196,7 @@ func (rc *relayConn) tcpWrite(b []byte) (n int, err error) {
 		rc.wbuf.Write(b)
 		_, err = rc.Conn.Write(rc.wbuf.Bytes())
 		rc.wbuf.Reset()
-		return
+		return n, err
 	}
 	return rc.Conn.Write(b)
 }
@@ -202,7 +204,7 @@ func (rc *relayConn) tcpWrite(b []byte) (n int, err error) {
 func (rc *relayConn) udpWrite(b []byte) (n int, err error) {
 	if len(b) > math.MaxUint16 {
 		err = errors.New("write: data maximum exceeded")
-		return
+		return n, err
 	}
 
 	n = len(b)
@@ -212,14 +214,14 @@ func (rc *relayConn) udpWrite(b []byte) (n int, err error) {
 		rc.wbuf.Write(bb[:])
 		rc.wbuf.Write(b)
 		_, err = rc.wbuf.WriteTo(rc.Conn)
-		return
+		return n, err
 	}
 
 	var bb [2]byte
 	binary.BigEndian.PutUint16(bb[:], uint16(len(b)))
 	_, err = rc.Conn.Write(bb[:])
 	if err != nil {
-		return
+		return n, err
 	}
 	return rc.Conn.Write(b)
 }
@@ -249,4 +251,21 @@ func serializeRelayAddr(m *M.Metadata) *relay.AddrFeature {
 		af.AType = relay.AddrIPv6
 	}
 	return af
+}
+
+func Parse(u *url.URL) (proxy.Proxy, error) {
+	address, username := u.Host, u.User.Username()
+	password, _ := u.User.Password()
+
+	opts := struct{ NoDelay bool }{}
+	if err := schema.NewDecoder().
+		Decode(&opts, u.Query()); err != nil {
+		return nil, err
+	}
+
+	return New(address, username, password, opts.NoDelay)
+}
+
+func init() {
+	proxy.RegisterProtocol("relay", Parse)
 }

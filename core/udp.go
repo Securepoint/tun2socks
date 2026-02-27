@@ -11,9 +11,9 @@ import (
 	"github.com/xjasonlyu/tun2socks/v2/core/option"
 )
 
-func withUDPHandler(handle func(adapter.UDPConn)) option.Option {
+func withUDPHandler(h adapter.TransportHandler) option.Option {
 	return func(s *stack.Stack) error {
-		udpForwarder := udp.NewForwarder(s, func(r *udp.ForwarderRequest) {
+		f := udp.NewForwarder(s, func(r *udp.ForwarderRequest) bool {
 			var (
 				wq waiter.Queue
 				id = r.ID()
@@ -22,16 +22,17 @@ func withUDPHandler(handle func(adapter.UDPConn)) option.Option {
 			if err != nil {
 				glog.Debugf("forward udp request: %s:%d->%s:%d: %s",
 					id.RemoteAddress, id.RemotePort, id.LocalAddress, id.LocalPort, err)
-				return
+				return false
 			}
 
 			conn := &udpConn{
 				UDPConn: gonet.NewUDPConn(&wq, ep),
 				id:      id,
 			}
-			handle(conn)
+			h.HandleUDP(conn)
+			return true
 		})
-		s.SetTransportProtocolHandler(udp.ProtocolNumber, udpForwarder.HandlePacket)
+		s.SetTransportProtocolHandler(udp.ProtocolNumber, f.HandlePacket)
 		return nil
 	}
 }
@@ -41,6 +42,6 @@ type udpConn struct {
 	id stack.TransportEndpointID
 }
 
-func (c *udpConn) ID() *stack.TransportEndpointID {
-	return &c.id
+func (c *udpConn) ID() stack.TransportEndpointID {
+	return c.id
 }
